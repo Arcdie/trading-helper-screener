@@ -194,14 +194,16 @@ const checkPriceJump = async ({
 
     const coeff = 5 * 60 * 1000;
     const nowUnix = getUnix();
-    const startTimeUnix = getUnix(startTime);
-    const nextIntervalUnix = (Math.ceil((startTimeUnix * 1000) / coeff) * coeff) / 1000;
+    const startTimeUnix = getUnix();
+    const nextIntervalUnix = (Math.ceil((nowUnix * 1000) / coeff) * coeff) / 1000;
+    console.log('nextIntervalUnix', nextIntervalUnix);
+    console.log('nextIntervalUnix - nowUnix', nextIntervalUnix - nowUnix);
 
     await redis.setAsync([
       keyPriceJump,
       startTimeUnix,
       'EX',
-      nextIntervalUnix - nowUnix,
+      Math.abs(nextIntervalUnix - nowUnix),
     ]);
 
     sendData({

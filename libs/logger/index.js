@@ -67,11 +67,6 @@ class Logger {
           format: consoleFormat(options),
         }),
 
-        new transports.Console({
-          level: 'info',
-          format: consoleFormat(options),
-        }),
-
         new transports.File({
           level: 'error',
           name: 'error-log',
