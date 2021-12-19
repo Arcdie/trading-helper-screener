@@ -88,7 +88,6 @@ const checkPriceJump = async ({
     const percentPerPrice = 100 / (validOpen / differenceBetweenPrices);
 
     if (percentPerPrice > (candlesAverageValue * PRICE_JUMPS_CONSTANTS.FACTOR_FOR_PRICE_CHANGE)) {
-      console.log(instrumentName, percentPerPrice.toFixed(2), candlesAverageValue);
       const isLong = validClose > validOpen;
 
       let isGreenLight = true;
@@ -150,6 +149,7 @@ const checkPriceJump = async ({
         data: {
           instrumentId,
           instrumentName,
+          isLong,
         },
       });
     }
