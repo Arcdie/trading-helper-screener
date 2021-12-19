@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 const {
   isUndefined,
 } = require('lodash');
@@ -8,6 +10,11 @@ const {
 
 const redis = require('../../../../libs/redis');
 const log = require('../../../../libs/logger')(module);
+
+const {
+  getUnix,
+  getPrecision,
+} = require('../../../../libs/support');
 
 const {
   sendData,
@@ -29,12 +36,15 @@ const {
   ACTION_NAMES,
 } = require('../../../../websocket/constants');
 
+const StrategyPriceJump = require('../../../../models/StrategyPriceJump');
+
 const checkPriceJump = async ({
   instrumentId,
   instrumentName,
 
   open,
   close,
+  startTime,
 }) => {
   try {
     if (!instrumentId || !isMongoId(instrumentId.toString())) {
@@ -65,7 +75,23 @@ const checkPriceJump = async ({
       };
     }
 
+    if (startTime && !moment(startTime).isValid()) {
+      return {
+        status: false,
+        message: 'No or invalid startTime',
+      };
+    }
+
     const intervalWithUpperCase = INTERVALS.get('5m').toUpperCase();
+
+    const keyPriceJump = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_JUMP`;
+    const priceJump = await redis.getAsync(keyPriceJump);
+
+    if (priceJump) {
+      return {
+        status: true,
+      };
+    }
 
     const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}_AVERAGE_VALUE`;
     let candlesAverageValue = await redis.getAsync(keyCandlesAverage);
@@ -87,72 +113,107 @@ const checkPriceJump = async ({
     const differenceBetweenPrices = Math.abs(validOpen - validClose);
     const percentPerPrice = 100 / (validOpen / differenceBetweenPrices);
 
-    if (percentPerPrice > (candlesAverageValue * PRICE_JUMPS_CONSTANTS.FACTOR_FOR_PRICE_CHANGE)) {
-      const isLong = validClose > validOpen;
+    if (percentPerPrice < (candlesAverageValue * PRICE_JUMPS_CONSTANTS.FACTOR_FOR_PRICE_CHANGE)) {
+      return {
+        status: true,
+      };
+    }
 
-      let isGreenLight = true;
+    const isLong = validClose > validOpen;
 
-      if (PRICE_JUMPS_CONSTANTS.DOES_CONSIDER_BTC_MICRO_TREND) {
-        const resultGetBtcInstrumentTrend = await getInstrumentTrend({ instrumentName: 'BTCUSDTPERP' });
+    let isGreenLight = true;
 
-        if (!resultGetBtcInstrumentTrend.status || !resultGetBtcInstrumentTrend.status) {
-          const message = resultGetBtcInstrumentTrend.message || 'Cant getInstrumentTrend (BTCUSDTPERP)';
-          log.warn(message);
+    if (PRICE_JUMPS_CONSTANTS.DOES_CONSIDER_BTC_MICRO_TREND) {
+      const resultGetBtcInstrumentTrend = await getInstrumentTrend({ instrumentName: 'BTCUSDTPERP' });
 
-          return {
-            status: false,
-            message,
-          };
-        }
+      if (!resultGetBtcInstrumentTrend.status || !resultGetBtcInstrumentTrend.status) {
+        const message = resultGetBtcInstrumentTrend.message || 'Cant getInstrumentTrend (BTCUSDTPERP)';
+        log.warn(message);
 
-        const {
-          micro_trend_for_5m_timeframe: btcMicroTrend,
-        } = resultGetBtcInstrumentTrend.result;
-
-        if ((btcMicroTrend === 'long' && !isLong)
-          || (btcMicroTrend === 'short' && isLong)) {
-          isGreenLight = false;
-        }
-      }
-
-      if (PRICE_JUMPS_CONSTANTS.DOES_CONSIDER_FUTURES_MICRO_TREND) {
-        const resultGetInstrumentTrend = await getInstrumentTrend({ instrumentName });
-
-        if (!resultGetInstrumentTrend.status || !resultGetInstrumentTrend.status) {
-          const message = resultGetInstrumentTrend.message || `Cant getInstrumentTrend (${instrumentName})`;
-          log.warn(message);
-
-          return {
-            status: false,
-            message,
-          };
-        }
-
-        const {
-          micro_trend_for_5m_timeframe: instrumentMicroTrend,
-        } = resultGetInstrumentTrend.result;
-
-        if ((instrumentMicroTrend === 'long' && !isLong)
-          || (instrumentMicroTrend === 'short' && isLong)) {
-          isGreenLight = false;
-        }
-      }
-
-      if (!isGreenLight) {
         return {
-          status: true,
+          status: false,
+          message,
         };
       }
 
-      sendData({
-        actionName: ACTION_NAMES.get('newPriceJump'),
-        data: {
-          instrumentId,
-          instrumentName,
-          isLong,
-        },
-      });
+      const {
+        micro_trend_for_5m_timeframe: btcMicroTrend,
+      } = resultGetBtcInstrumentTrend.result;
+
+      if ((btcMicroTrend === 'long' && !isLong)
+        || (btcMicroTrend === 'short' && isLong)) {
+        isGreenLight = false;
+      }
     }
+
+    if (PRICE_JUMPS_CONSTANTS.DOES_CONSIDER_FUTURES_MICRO_TREND) {
+      const resultGetInstrumentTrend = await getInstrumentTrend({ instrumentName });
+
+      if (!resultGetInstrumentTrend.status || !resultGetInstrumentTrend.status) {
+        const message = resultGetInstrumentTrend.message || `Cant getInstrumentTrend (${instrumentName})`;
+        log.warn(message);
+
+        return {
+          status: false,
+          message,
+        };
+      }
+
+      const {
+        micro_trend_for_5m_timeframe: instrumentMicroTrend,
+      } = resultGetInstrumentTrend.result;
+
+      if ((instrumentMicroTrend === 'long' && !isLong)
+        || (instrumentMicroTrend === 'short' && isLong)) {
+        isGreenLight = false;
+      }
+    }
+
+    if (!isGreenLight) {
+      return {
+        status: true,
+      };
+    }
+
+    let price = isLong ? open + differenceBetweenPrices : open - differenceBetweenPrices;
+    const precisionOfOpen = getPrecision(open);
+
+    price = parseFloat(price.toFixed(precisionOfOpen));
+
+    const newStrategyPriceJump = new StrategyPriceJump({
+      instrument_id: instrumentId,
+      is_long: isLong,
+
+      price,
+      candles_average_volume: candlesAverageValue,
+      factor: PRICE_JUMPS_CONSTANTS.FACTOR_FOR_PRICE_CHANGE,
+
+      candle_time: startTime,
+    });
+
+    await newStrategyPriceJump.save();
+
+    const coeff = 5 * 60 * 1000;
+    const nowUnix = getUnix();
+    const startTimeUnix = getUnix(startTime);
+    const nextIntervalUnix = (Math.ceil((startTimeUnix * 1000) / coeff) * coeff) / 1000;
+
+    await redis.setAsync([
+      keyPriceJump,
+      startTimeUnix,
+      'EX',
+      nextIntervalUnix - nowUnix,
+    ]);
+
+    sendData({
+      actionName: ACTION_NAMES.get('newPriceJump'),
+      data: {
+        isLong,
+        instrumentId,
+        instrumentName,
+        strategyTargetId: newStrategyPriceJump._id,
+      },
+    });
 
     return {
       status: true,
