@@ -96,7 +96,7 @@ const checkPriceJump = async ({
     const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}_AVERAGE_VALUE`;
     let candlesAverageValue = await redis.getAsync(keyCandlesAverage);
 
-    if (isUndefined(candlesAverageValue)) {
+    if (!candlesAverageValue) {
       const message = `No candlesAverageValue for ${instrumentName}`;
 
       log.warn(message);
@@ -177,7 +177,6 @@ const checkPriceJump = async ({
 
     let price = isLong ? open + differenceBetweenPrices : open - differenceBetweenPrices;
     const precisionOfOpen = getPrecision(open);
-
     price = parseFloat(price.toFixed(precisionOfOpen));
 
     const newStrategyPriceJump = new StrategyPriceJump({
@@ -223,7 +222,7 @@ const checkPriceJump = async ({
 
     return {
       status: false,
-      message: error.response.data,
+      message: error.message,
     };
   }
 };
