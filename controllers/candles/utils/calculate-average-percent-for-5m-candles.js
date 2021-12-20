@@ -38,12 +38,7 @@ const calculateAveragePercentFor5mCandles = async ({
     let candlesDocs = await redis.getAsync(keyInstrumentCandles);
 
     if (!candlesDocs) {
-      const message = `No ${keyInstrumentCandles}`;
-
-      return {
-        status: false,
-        message,
-      };
+      return { status: true };
     }
 
     const numberCandles = PRICE_JUMPS_CONSTANTS.NUMBER_CANDLES_FOR_CALCULATE_AVERAGE_PERCENT;
@@ -73,7 +68,7 @@ const calculateAveragePercentFor5mCandles = async ({
 
     averagePercent = parseFloat((averagePercent / numberCandles).toFixed(2));
 
-    const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}_AVERAGE_VALUE`;
+    const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:AVERAGE_VALUE`;
 
     await redis.setAsync([
       keyCandlesAverage,

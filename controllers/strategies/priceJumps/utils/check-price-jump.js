@@ -88,22 +88,14 @@ const checkPriceJump = async ({
     const priceJump = await redis.getAsync(keyPriceJump);
 
     if (priceJump) {
-      return {
-        status: true,
-      };
+      return { status: true };
     }
 
-    const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}_AVERAGE_VALUE`;
+    const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:AVERAGE_VALUE`;
     let candlesAverageValue = await redis.getAsync(keyCandlesAverage);
 
     if (!candlesAverageValue) {
-      const message = `No candlesAverageValue for ${instrumentName}`;
-
-      log.warn(message);
-      return {
-        status: false,
-        message,
-      };
+      return { status: true };
     }
 
     const validOpen = parseFloat(open);
@@ -196,8 +188,6 @@ const checkPriceJump = async ({
     const nowUnix = getUnix();
     const startTimeUnix = getUnix();
     const nextIntervalUnix = (Math.ceil((nowUnix * 1000) / coeff) * coeff) / 1000;
-    console.log('nextIntervalUnix', nextIntervalUnix);
-    console.log('nextIntervalUnix - nowUnix', nextIntervalUnix - nowUnix);
 
     await redis.setAsync([
       keyPriceJump,
