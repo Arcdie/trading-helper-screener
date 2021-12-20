@@ -22,7 +22,7 @@ const {
   ACTION_NAMES,
 } = require('../../../websocket/constants');
 
-const CONNECTION_NAME = 'Screener:Futures:Kline_5m';
+const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Futures:Kline_5m';
 
 class InstrumentQueue {
   constructor(instrumentName) {
@@ -72,7 +72,7 @@ module.exports = async () => {
 
         sendPongInterval = setInterval(() => {
           client.send(JSON.stringify({ actionName: 'pong' }));
-        }, 30 * 60 * 1000); // 30 minutes
+        }, 10 * 60 * 1000); // 10 minutes
       });
 
       client.on('close', (message) => {

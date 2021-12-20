@@ -14,7 +14,7 @@ const {
   ACTION_NAMES,
 } = require('../../../websocket/constants');
 
-const CONNECTION_NAME = 'Screener:Spot:Kline_5m';
+const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Spot:Kline_5m';
 
 module.exports = async () => {
   try {
@@ -36,7 +36,7 @@ module.exports = async () => {
 
         sendPongInterval = setInterval(() => {
           client.send(JSON.stringify({ actionName: 'pong' }));
-        }, 30 * 60 * 1000); // 30 minutes
+        }, 10 * 60 * 1000); // 10 minutes
       });
 
       client.on('close', (message) => {
