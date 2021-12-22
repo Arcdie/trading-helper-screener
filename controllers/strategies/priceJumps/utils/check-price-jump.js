@@ -208,7 +208,7 @@ const checkPriceJump = async ({
         isLong,
         instrumentId,
         instrumentName,
-        instrumentPrice: price,
+        instrumentPrice: validClose,
         strategyTargetId: newStrategyPriceJump._id,
       },
     });
