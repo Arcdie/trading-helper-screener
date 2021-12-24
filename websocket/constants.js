@@ -8,6 +8,7 @@ const ACTION_NAMES = new Map([
 
   // strategies
   ['newPriceJump', 'newPriceJump'],
+  ['newPriceRebound', 'newPriceRebound'],
 ]);
 
 module.exports = {

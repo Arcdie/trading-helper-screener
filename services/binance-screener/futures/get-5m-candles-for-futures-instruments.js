@@ -11,6 +11,10 @@ const {
 } = require('../../../controllers/strategies/priceJumps/utils/check-price-jump');
 
 const {
+  checkPriceRebound,
+} = require('../../../controllers/strategies/priceRebounds/utils/check-price-rebound');
+
+const {
   calculateAveragePercentFor5mCandles,
 } = require('../../../controllers/candles/utils/calculate-average-percent-for-5m-candles');
 
@@ -41,10 +45,20 @@ class InstrumentQueue {
   }
 
   async nextStep() {
-    const resultCheck = await checkPriceJump(this.lastTick);
+    const [
+      resultCheckPriceJump,
+      resultCheckPriceRebound,
+    ] = await Promise.all([
+      checkPriceJump(this.lastTick),
+      checkPriceRebound(this.lastTick),
+    ]);
 
-    if (!resultCheck || !resultCheck.status) {
-      log.warn(resultCheck.message || 'Cant checkPriceJump');
+    if (!resultCheckPriceJump || !resultCheckPriceJump.status) {
+      log.warn(resultCheckPriceJump.message || 'Cant checkPriceJump');
+    }
+
+    if (!resultCheckPriceRebound || !resultCheckPriceRebound.status) {
+      log.warn(resultCheckPriceRebound.message || 'Cant checkPriceRebound');
     }
 
     setTimeout(() => { this.nextStep(); }, 1 * 1000);
