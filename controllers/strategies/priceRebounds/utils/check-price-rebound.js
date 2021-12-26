@@ -38,7 +38,7 @@ const {
 
 const StrategyPriceRebound = require('../../../../models/StrategyPriceRebound');
 
-const checkPriceJump = async ({
+const checkPriceRebound = async ({
   instrumentId,
   instrumentName,
 
@@ -84,8 +84,8 @@ const checkPriceJump = async ({
 
     const intervalWithUpperCase = INTERVALS.get('5m').toUpperCase();
 
-    const keyPriceJump = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_REBOUND`;
-    const priceJump = await redis.getAsync(keyPriceJump);
+    const keyPriceRebound = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_REBOUND`;
+    const priceJump = await redis.getAsync(keyPriceRebound);
 
     if (priceJump) {
       return { status: true };
@@ -186,18 +186,19 @@ const checkPriceJump = async ({
 
     const coeff = 5 * 60 * 1000;
     const nowUnix = getUnix();
-    const startTimeUnix = getUnix();
     const nextIntervalUnix = (Math.ceil((nowUnix * 1000) / coeff) * coeff) / 1000;
 
     let expireAfter = Math.abs(nextIntervalUnix - nowUnix);
 
     if (expireAfter < 30) {
-      expireAfter += (300 + expireAfter);
+      expireAfter += 300;
     }
 
+    expireAfter += 10;
+
     await redis.setAsync([
-      keyPriceJump,
-      startTimeUnix,
+      keyPriceRebound,
+      nowUnix,
       'EX',
       expireAfter,
     ]);
@@ -227,5 +228,5 @@ const checkPriceJump = async ({
 };
 
 module.exports = {
-  checkPriceJump,
+  checkPriceRebound,
 };

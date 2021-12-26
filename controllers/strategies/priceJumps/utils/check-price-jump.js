@@ -186,18 +186,19 @@ const checkPriceJump = async ({
 
     const coeff = 5 * 60 * 1000;
     const nowUnix = getUnix();
-    const startTimeUnix = getUnix();
     const nextIntervalUnix = (Math.ceil((nowUnix * 1000) / coeff) * coeff) / 1000;
 
     let expireAfter = Math.abs(nextIntervalUnix - nowUnix);
 
     if (expireAfter < 30) {
-      expireAfter += (300 + expireAfter);
+      expireAfter += 300;
     }
+
+    expireAfter += 10;
 
     await redis.setAsync([
       keyPriceJump,
-      startTimeUnix,
+      nowUnix,
       'EX',
       expireAfter,
     ]);
