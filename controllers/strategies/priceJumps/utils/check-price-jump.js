@@ -21,6 +21,10 @@ const {
 } = require('../../../../websocket/websocket-server');
 
 const {
+  sendMessage,
+} = require('../../../telegram/utils/send-message');
+
+const {
   getInstrumentTrend,
 } = require('../../../instrument-trends/utils/get-instrument-trend');
 
@@ -41,6 +45,8 @@ const StrategyPriceJump = require('../../../../models/StrategyPriceJump');
 const checkPriceJump = async ({
   instrumentId,
   instrumentName,
+
+  timeframe,
 
   open,
   close,
@@ -82,7 +88,14 @@ const checkPriceJump = async ({
       };
     }
 
-    const intervalWithUpperCase = INTERVALS.get('5m').toUpperCase();
+    if (!timeframe || !INTERVALS.get(timeframe)) {
+      return {
+        status: false,
+        message: 'No or invalid timeframe',
+      };
+    }
+
+    const intervalWithUpperCase = INTERVALS.get(timeframe).toUpperCase();
 
     const keyPriceJump = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_JUMP`;
     const priceJump = await redis.getAsync(keyPriceJump);
@@ -171,6 +184,7 @@ const checkPriceJump = async ({
     const precisionOfOpen = getPrecision(open);
     price = parseFloat(price.toFixed(precisionOfOpen));
 
+    /*
     const newStrategyPriceJump = new StrategyPriceJump({
       instrument_id: instrumentId,
       is_long: isLong,
@@ -183,6 +197,7 @@ const checkPriceJump = async ({
     });
 
     await newStrategyPriceJump.save();
+    */
 
     const coeff = 5 * 60 * 1000;
     const nowUnix = getUnix();
@@ -203,6 +218,18 @@ const checkPriceJump = async ({
       expireAfter,
     ]);
 
+    let interval = 1;
+
+    switch (timeframe) {
+      case INTERVALS.get('5m'): interval = 5; break;
+      case INTERVALS.get('1h'): interval = 60; break;
+
+      default: break;
+    }
+
+    sendMessage(260325716, `PriceJump:${intervalWithUpperCase}
+https://ru.tradingview.com/chart/XCMsz22F/?symbol=${instrumentName}&interval=${interval}`);
+
     sendData({
       actionName: ACTION_NAMES.get('newPriceJump'),
       data: {
@@ -210,7 +237,7 @@ const checkPriceJump = async ({
         instrumentId,
         instrumentName,
         instrumentPrice: validClose,
-        strategyTargetId: newStrategyPriceJump._id,
+        // strategyTargetId: newStrategyPriceJump._id,
       },
     });
 

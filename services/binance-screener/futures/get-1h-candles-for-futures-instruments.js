@@ -30,7 +30,7 @@ const {
   INTERVALS,
 } = require('../../../controllers/candles/constants');
 
-const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Futures:Kline_5m';
+const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Futures:Kline_1h';
 
 class InstrumentQueue {
   constructor(instrumentName) {
@@ -54,7 +54,7 @@ class InstrumentQueue {
     ] = await Promise.all([
       checkPriceJump({
         ...this.lastTick,
-        timeframe: INTERVALS.get('5m'),
+        timeframe: INTERVALS.get('1h'),
       }),
     ]);
 
@@ -82,7 +82,7 @@ module.exports = async () => {
 
         client.send(JSON.stringify({
           actionName: 'subscribe',
-          data: { subscriptionName: ACTION_NAMES.get('futuresCandle5mData') },
+          data: { subscriptionName: ACTION_NAMES.get('futuresCandle1hData') },
         }));
 
         sendPongInterval = setInterval(() => {
@@ -118,11 +118,11 @@ module.exports = async () => {
             instrumentId,
             instrumentName,
 
-            timeframe: INTERVALS.get('5m'),
+            timeframe: INTERVALS.get('1h'),
           });
 
           if (!resultCalculate || !resultCalculate.status) {
-            log.warn(resultCalculate.message || 'Cant calculateAveragePercentFor5mCandles');
+            log.warn(resultCalculate.message || 'Cant calculateAveragePercentForCandles');
           }
         }
       });

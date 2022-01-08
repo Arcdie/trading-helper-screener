@@ -13,9 +13,11 @@ const {
   PRICE_JUMPS_CONSTANTS,
 } = require('../../strategies/constants');
 
-const calculateAveragePercentFor5mCandles = async ({
+const calculateAveragePercentForCandles = async ({
   instrumentId,
   instrumentName,
+
+  timeframe,
 }) => {
   try {
     if (!instrumentId || !isMongoId(instrumentId.toString())) {
@@ -32,7 +34,14 @@ const calculateAveragePercentFor5mCandles = async ({
       };
     }
 
-    const intervalWithUpperCase = INTERVALS.get('5m').toUpperCase();
+    if (!timeframe || !INTERVALS.get(timeframe)) {
+      return {
+        status: false,
+        message: 'No or invalid timeframe',
+      };
+    }
+
+    const intervalWithUpperCase = INTERVALS.get(timeframe).toUpperCase();
 
     const keyInstrumentCandles = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}`;
     let candlesDocs = await redis.getAsync(keyInstrumentCandles);
@@ -90,5 +99,5 @@ const calculateAveragePercentFor5mCandles = async ({
 };
 
 module.exports = {
-  calculateAveragePercentFor5mCandles,
+  calculateAveragePercentForCandles,
 };
