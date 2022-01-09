@@ -13,43 +13,40 @@ const log = require('../../../../libs/logger')(module);
 
 const {
   getUnix,
-  getPrecision,
 } = require('../../../../libs/support');
-
-const {
-  sendData,
-} = require('../../../../websocket/websocket-server');
 
 const {
   sendMessage,
 } = require('../../../telegram/utils/send-message');
 
 const {
-  getInstrumentTrend,
-} = require('../../../instrument-trends/utils/get-instrument-trend');
+  sendData,
+} = require('../../../../websocket/websocket-server');
 
 const {
   INTERVALS,
 } = require('../../../candles/constants');
 
 const {
-  PRICE_JUMPS_CONSTANTS,
+  PRICE_ROLLBACKS_CONSTANTS,
 } = require('../../../strategies/constants');
 
 const {
   ACTION_NAMES,
 } = require('../../../../websocket/constants');
 
-const StrategyPriceJump = require('../../../../models/StrategyPriceJump');
-
-const checkPriceJump = async ({
+const checkPriceRollback = async ({
   instrumentId,
   instrumentName,
 
-  timeframe,
-
   open,
   close,
+
+  low,
+  high,
+
+  volume,
+  timeframe,
   startTime,
 }) => {
   try {
@@ -81,6 +78,20 @@ const checkPriceJump = async ({
       };
     }
 
+    if (isUndefined(low)) {
+      return {
+        status: false,
+        message: 'No low',
+      };
+    }
+
+    if (isUndefined(high)) {
+      return {
+        status: false,
+        message: 'No high',
+      };
+    }
+
     if (startTime && !moment(startTime).isValid()) {
       return {
         status: false,
@@ -97,60 +108,69 @@ const checkPriceJump = async ({
 
     const intervalWithUpperCase = INTERVALS.get(timeframe).toUpperCase();
 
-    const keyPriceJump = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_JUMP`;
-    const priceJump = await redis.getAsync(keyPriceJump);
+    const keyPriceRollback = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_ROLLBACK`;
+    const priceRollback = await redis.getAsync(keyPriceRollback);
 
-    if (priceJump) {
+    if (priceRollback) {
       return { status: true };
     }
 
-    const keyCandlesAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:AVERAGE_VALUE`;
-    let candlesAverageValue = await redis.getAsync(keyCandlesAverage);
+    const keyVolumeAverage = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:AVERAGE_VOLUME_VALUE`;
+    let volumeAverageValue = await redis.getAsync(keyVolumeAverage);
 
-    if (!candlesAverageValue) {
+    if (!volumeAverageValue) {
+      return { status: true };
+    }
+
+    volumeAverageValue = parseFloat(volumeAverageValue);
+
+    if (volume < (volumeAverageValue * PRICE_ROLLBACKS_CONSTANTS.FACTOR_FOR_VOLUME_CHANGE)) {
       return { status: true };
     }
 
     const validOpen = parseFloat(open);
     const validClose = parseFloat(close);
-    candlesAverageValue = parseFloat(candlesAverageValue);
+    const validHigh = parseFloat(high);
+    const validLow = parseFloat(low);
 
-    const differenceBetweenPrices = Math.abs(validOpen - validClose);
-    const percentPerPrice = 100 / (validOpen / differenceBetweenPrices);
+    let isGreenLight = false;
 
-    if (percentPerPrice < (candlesAverageValue * PRICE_JUMPS_CONSTANTS.FACTOR_FOR_PRICE_CHANGE)) {
+    const isLong = validClose > validOpen;
+    const fullPriceRange = validHigh - validHigh;
+
+    const differenceBetweenOpenAndClose = Math.abs(validOpen - validClose);
+    let percentPerPrice = 100 / (fullPriceRange / differenceBetweenOpenAndClose);
+
+    if (percentPerPrice < 30) {
+      if (isLong) {
+        const differenceBetweenHighAndClose = validHigh - validClose;
+        percentPerPrice = 100 / (fullPriceRange / differenceBetweenHighAndClose);
+
+        if (percentPerPrice > 55) {
+          isGreenLight = true;
+        }
+      } else {
+        const differenceBetweenCloseAndLow = validClose - validLow;
+        percentPerPrice = 100 / (fullPriceRange / differenceBetweenCloseAndLow);
+
+        if (percentPerPrice > 55) {
+          isGreenLight = true;
+        }
+      }
+    }
+
+    if (!isGreenLight) {
       return {
         status: true,
       };
     }
-
-    const isLong = validClose > validOpen;
-
-    let price = isLong ? open + differenceBetweenPrices : open - differenceBetweenPrices;
-    const precisionOfOpen = getPrecision(open);
-    price = parseFloat(price.toFixed(precisionOfOpen));
-
-    /*
-    const newStrategyPriceJump = new StrategyPriceJump({
-      instrument_id: instrumentId,
-      is_long: isLong,
-
-      price,
-      candles_average_volume: candlesAverageValue,
-      factor: PRICE_JUMPS_CONSTANTS.FACTOR_FOR_PRICE_CHANGE,
-
-      candle_time: startTime,
-    });
-
-    await newStrategyPriceJump.save();
-    */
 
     const nowUnix = getUnix();
     const expireAfter = timeframe === INTERVALS.get('5m') ?
       30 * 60 : 3 * 60 * 60; // 30 minutes - 3 hours
 
     await redis.setAsync([
-      keyPriceJump,
+      keyPriceRollback,
       nowUnix,
       'EX',
       expireAfter,
@@ -165,17 +185,17 @@ const checkPriceJump = async ({
       default: break;
     }
 
-    sendMessage(260325716, `PriceJump:${intervalWithUpperCase}
+    sendMessage(260325716, `PriceRollback:${intervalWithUpperCase}
 https://ru.tradingview.com/chart/?symbol=${instrumentName}&interval=${interval}`);
 
     sendData({
-      actionName: ACTION_NAMES.get('newPriceJump'),
+      actionName: ACTION_NAMES.get('newPriceRollback'),
       data: {
         isLong,
         instrumentId,
         instrumentName,
         instrumentPrice: validClose,
-        // strategyTargetId: newStrategyPriceJump._id,
+        // strategyTargetId: newStrategyPriceRebound._id,
       },
     });
 
@@ -193,5 +213,5 @@ https://ru.tradingview.com/chart/?symbol=${instrumentName}&interval=${interval}`
 };
 
 module.exports = {
-  checkPriceJump,
+  checkPriceRollback,
 };

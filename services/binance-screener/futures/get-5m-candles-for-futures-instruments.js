@@ -15,6 +15,14 @@ const {
 } = require('../../../controllers/strategies/priceRebounds/utils/check-price-rebound');
 
 const {
+  checkPriceRollback,
+} = require('../../../controllers/strategies/priceRollbacks/utils/check-price-rollback');
+
+const {
+  calculateAverageVolume,
+} = require('../../../controllers/candles/utils/calculate-average-volume');
+
+const {
   calculateAveragePercentForCandles,
 } = require('../../../controllers/candles/utils/calculate-average-percent-for-candles');
 
@@ -114,15 +122,42 @@ module.exports = async () => {
         instrumentsQueues[instrumentName].updateLastTick(parsedData.data);
 
         if (parsedData.data.isClosed) {
-          const resultCalculate = await calculateAveragePercentForCandles({
-            instrumentId,
-            instrumentName,
+          const [
+            resultCalculateAveragePercent,
+            resultCalculateAverageVolume,
+            resultCheckPriceRollback,
+          ] = await Promise.all([
+            calculateAveragePercentForCandles({
+              instrumentId,
+              instrumentName,
 
-            timeframe: INTERVALS.get('5m'),
-          });
+              timeframe: INTERVALS.get('5m'),
+            }),
 
-          if (!resultCalculate || !resultCalculate.status) {
-            log.warn(resultCalculate.message || 'Cant calculateAveragePercentFor5mCandles');
+            calculateAverageVolume({
+              instrumentId,
+              instrumentName,
+
+              timeframe: INTERVALS.get('5m'),
+            }),
+
+            // strategies
+            checkPriceRollback({
+              ...parsedData.data,
+              timeframe: INTERVALS.get('5m'),
+            }),
+          ]);
+
+          if (!resultCalculateAveragePercent || !resultCalculateAveragePercent.status) {
+            log.warn(resultCalculateAveragePercent.message || 'Cant calculateAveragePercentFor5mCandles');
+          }
+
+          if (!resultCalculateAverageVolume || !resultCalculateAverageVolume.status) {
+            log.warn(resultCalculateAverageVolume.message || 'Cant calculateAverageVolume');
+          }
+
+          if (!resultCheckPriceRollback || !resultCheckPriceRollback.status) {
+            log.warn(resultCheckPriceRollback.message || 'Cant checkPriceRollback');
           }
         }
       });

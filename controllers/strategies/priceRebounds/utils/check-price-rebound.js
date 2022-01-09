@@ -85,9 +85,9 @@ const checkPriceRebound = async ({
     const intervalWithUpperCase = INTERVALS.get('5m').toUpperCase();
 
     const keyPriceRebound = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}:PRICE_REBOUND`;
-    const priceJump = await redis.getAsync(keyPriceRebound);
+    const priceRebound = await redis.getAsync(keyPriceRebound);
 
-    if (priceJump) {
+    if (priceRebound) {
       return { status: true };
     }
 
