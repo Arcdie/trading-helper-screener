@@ -125,7 +125,7 @@ module.exports = async () => {
           const [
             resultCalculateAveragePercent,
             resultCalculateAverageVolume,
-            resultCheckPriceRollback,
+            // resultCheckPriceRollback,
           ] = await Promise.all([
             calculateAveragePercentForCandles({
               instrumentId,
@@ -142,10 +142,12 @@ module.exports = async () => {
             }),
 
             // strategies
+            /*
             checkPriceRollback({
               ...parsedData.data,
               timeframe: INTERVALS.get('5m'),
             }),
+            */
           ]);
 
           if (!resultCalculateAveragePercent || !resultCalculateAveragePercent.status) {
@@ -156,9 +158,11 @@ module.exports = async () => {
             log.warn(resultCalculateAverageVolume.message || 'Cant calculateAverageVolume');
           }
 
+          /*
           if (!resultCheckPriceRollback || !resultCheckPriceRollback.status) {
             log.warn(resultCheckPriceRollback.message || 'Cant checkPriceRollback');
           }
+          */
         }
       });
 

@@ -44,11 +44,13 @@ const calculateAverageVolume = async ({
     const intervalWithUpperCase = INTERVALS.get(timeframe).toUpperCase();
 
     const keyInstrumentCandles = `INSTRUMENT:${instrumentName}:CANDLES_${intervalWithUpperCase}`;
-    const candlesDocs = await redis.getAsync(keyInstrumentCandles);
+    let candlesDocs = await redis.getAsync(keyInstrumentCandles);
 
     if (!candlesDocs) {
       return { status: true };
     }
+
+    candlesDocs = JSON.parse(candlesDocs);
 
     const numberCandlesForVolume = timeframe === INTERVALS.get('5m') ?
       PRICE_ROLLBACKS_CONSTANTS.NUMBER_CANDLES_FOR_CALCULATE_AVERAGE_PERCENT_FOR_5M :
@@ -87,7 +89,7 @@ const calculateAverageVolume = async ({
 
     return {
       status: false,
-      message: error.response.data,
+      message: error.message,
     };
   }
 };
