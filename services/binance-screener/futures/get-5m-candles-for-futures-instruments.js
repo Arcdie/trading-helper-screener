@@ -2,6 +2,8 @@ const WebSocketClient = require('ws');
 
 const log = require('../../../libs/logger')(module);
 
+const QueueHandler = require('../../../libs/queue-handler');
+
 const {
   sendMessage,
 } = require('../../../controllers/telegram/utils/send-message');
@@ -11,20 +13,8 @@ const {
 } = require('../../../controllers/strategies/priceJumps/utils/check-price-jump');
 
 const {
-  checkPriceRebound,
-} = require('../../../controllers/strategies/priceRebounds/utils/check-price-rebound');
-
-const {
-  checkPriceRollback,
-} = require('../../../controllers/strategies/priceRollbacks/utils/check-price-rollback');
-
-const {
-  calculateAverageVolume,
-} = require('../../../controllers/candles/utils/calculate-average-volume');
-
-const {
-  calculateAveragePercentForCandles,
-} = require('../../../controllers/candles/utils/calculate-average-percent-for-candles');
+  checkFigureLevelRebound,
+} = require('../../../controllers/strategies/figureLevelRebounds/utils/check-figure-level-rebounds');
 
 const {
   binanceScreenerConf,
@@ -40,34 +30,31 @@ const {
 
 const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Futures:Kline_5m';
 
-class InstrumentQueue {
-  constructor(instrumentName) {
-    this.lastTick = false;
-    this.isActive = false;
-    this.instrumentName = instrumentName;
-  }
-
-  updateLastTick(obj) {
-    this.lastTick = obj;
-
-    if (!this.isActive) {
-      this.isActive = true;
-      this.nextStep();
-    }
-  }
-
-  async nextStep() {
+class InstrumentQueueWithDelay extends QueueHandler {
+  async nextTick() {
     const [
-      resultCheckPriceJump,
+      // resultCheckPriceJump,
+      resultCheckFigureLevelRebound,
     ] = await Promise.all([
+
+      /*
       checkPriceJump({
         ...this.lastTick,
         timeframe: INTERVALS.get('5m'),
       }),
+      */
+
+      checkFigureLevelRebound(this.lastTick),
     ]);
 
+    /*
     if (!resultCheckPriceJump || !resultCheckPriceJump.status) {
       log.warn(resultCheckPriceJump.message || 'Cant checkPriceJump');
+    }
+    */
+
+    if (!resultCheckFigureLevelRebound) {
+      log.warn(resultCheckFigureLevelRebound.message || 'Cant checkFigureLevelRebound');
     }
 
     setTimeout(() => { this.nextStep(); }, 1 * 1000);
@@ -111,59 +98,16 @@ module.exports = async () => {
         const parsedData = JSON.parse(bufferData.toString());
 
         const {
+          isClosed,
           instrumentId,
           instrumentName,
         } = parsedData.data;
 
         if (!instrumentsQueues[instrumentName]) {
-          instrumentsQueues[instrumentName] = new InstrumentQueue(instrumentName);
+          instrumentsQueues[instrumentName] = new InstrumentQueueWithDelay(instrumentName);
         }
 
         instrumentsQueues[instrumentName].updateLastTick(parsedData.data);
-
-        if (parsedData.data.isClosed) {
-          const [
-            resultCalculateAveragePercent,
-            resultCalculateAverageVolume,
-            // resultCheckPriceRollback,
-          ] = await Promise.all([
-            calculateAveragePercentForCandles({
-              instrumentId,
-              instrumentName,
-
-              timeframe: INTERVALS.get('5m'),
-            }),
-
-            calculateAverageVolume({
-              instrumentId,
-              instrumentName,
-
-              timeframe: INTERVALS.get('5m'),
-            }),
-
-            // strategies
-            /*
-            checkPriceRollback({
-              ...parsedData.data,
-              timeframe: INTERVALS.get('5m'),
-            }),
-            */
-          ]);
-
-          if (!resultCalculateAveragePercent || !resultCalculateAveragePercent.status) {
-            log.warn(resultCalculateAveragePercent.message || 'Cant calculateAveragePercentFor5mCandles');
-          }
-
-          if (!resultCalculateAverageVolume || !resultCalculateAverageVolume.status) {
-            log.warn(resultCalculateAverageVolume.message || 'Cant calculateAverageVolume');
-          }
-
-          /*
-          if (!resultCheckPriceRollback || !resultCheckPriceRollback.status) {
-            log.warn(resultCheckPriceRollback.message || 'Cant checkPriceRollback');
-          }
-          */
-        }
       });
 
       setTimeout(() => {

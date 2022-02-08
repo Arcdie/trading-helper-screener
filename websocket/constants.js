@@ -10,6 +10,8 @@ const ACTION_NAMES = new Map([
   ['newPriceJump', 'newPriceJump'],
   ['newPriceRebound', 'newPriceRebound'],
   ['newPriceRollback', 'newPriceRollback'],
+
+  ['figureLevelRebound', 'figureLevelRebound'],
 ]);
 
 module.exports = {

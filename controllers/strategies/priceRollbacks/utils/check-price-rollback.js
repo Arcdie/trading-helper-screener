@@ -1,3 +1,5 @@
+// candle figure (молот)
+
 const moment = require('moment');
 
 const {
