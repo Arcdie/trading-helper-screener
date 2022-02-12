@@ -80,11 +80,6 @@ const checkFigureLevelRebound = async ({
       const isLong = prefix === 'long';
       price = parseFloat(price);
 
-      // tmp
-      if (!isLong) {
-        return true;
-      }
-
       const percentPerPrice = price * (PERCENT_FOR_DEFINE_REBOUND / 100);
 
       const triggerPrice = isLong ?
@@ -115,7 +110,9 @@ const checkFigureLevelRebound = async ({
       bounds = JSON.parse(bounds);
 
       bounds.forEach(bound => {
-        boundsIds.push(bound.bound_id);
+        if (bound.is_moderated) {
+          boundsIds.push(bound.bound_id);
+        }
       });
     });
 
