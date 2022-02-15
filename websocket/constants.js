@@ -11,6 +11,7 @@ const ACTION_NAMES = new Map([
   ['newPriceRebound', 'newPriceRebound'],
   ['newPriceRollback', 'newPriceRollback'],
 
+  ['figureLineRebound', 'figureLineRebound'],
   ['figureLevelRebound', 'figureLevelRebound'],
 ]);
 

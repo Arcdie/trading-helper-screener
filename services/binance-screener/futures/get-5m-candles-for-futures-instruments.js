@@ -13,6 +13,10 @@ const {
 } = require('../../../controllers/strategies/priceJumps/utils/check-price-jump');
 
 const {
+  checkFigureLineRebound,
+} = require('../../../controllers/strategies/figureLineRebounds/utils/check-figure-line-rebounds');
+
+const {
   checkFigureLevelRebound,
 } = require('../../../controllers/strategies/figureLevelRebounds/utils/check-figure-level-rebounds');
 
@@ -34,6 +38,7 @@ class InstrumentQueueWithDelay extends QueueHandler {
   async nextTick() {
     const [
       // resultCheckPriceJump,
+      resultCheckFigureLineRebound,
       resultCheckFigureLevelRebound,
     ] = await Promise.all([
 
@@ -44,6 +49,7 @@ class InstrumentQueueWithDelay extends QueueHandler {
       }),
       */
 
+      checkFigureLineRebound(this.lastTick),
       checkFigureLevelRebound(this.lastTick),
     ]);
 
@@ -52,6 +58,10 @@ class InstrumentQueueWithDelay extends QueueHandler {
       log.warn(resultCheckPriceJump.message || 'Cant checkPriceJump');
     }
     */
+
+    if (!resultCheckFigureLineRebound) {
+      log.warn(resultCheckFigureLineRebound.message || 'Cant checkFigureLineRebound');
+    }
 
     if (!resultCheckFigureLevelRebound) {
       log.warn(resultCheckFigureLevelRebound.message || 'Cant checkFigureLevelRebound');
