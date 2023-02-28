@@ -13,12 +13,22 @@ const {
 } = require('../../../controllers/strategies/priceJumps/utils/check-price-jump');
 
 const {
-  checkFigureLineRebound,
+  checkFigureLevelRebound,
+} = require('../../../controllers/strategies/figureLevelRebounds/utils/check-figure-level-rebounds');
+
+/*
+const {
+  calculateMovingAveargeForTimeframe,
+} = require('../../../controllers/instrument-moving-averages/utils/calculate-moving-average-for-timeframe');
+
+const {
+  checkFigureLineRebounds,
 } = require('../../../controllers/strategies/figureLineRebounds/utils/check-figure-line-rebounds');
 
 const {
-  checkFigureLevelRebound,
-} = require('../../../controllers/strategies/figureLevelRebounds/utils/check-figure-level-rebounds');
+  checkMovingAveragesCrossed,
+} = require('../../../controllers/strategies/movingAverageCrosses/utils/check-moving-averages-crossed');
+*/
 
 const {
   binanceScreenerConf,
@@ -37,35 +47,32 @@ const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Futures:Kline_5m';
 class InstrumentQueueWithDelay extends QueueHandler {
   async nextTick() {
     const [
-      // resultCheckPriceJump,
-      resultCheckFigureLineRebound,
+      resultCheckPriceJump,
+      // resultCheckFigureLineRebound,
       resultCheckFigureLevelRebound,
     ] = await Promise.all([
-
-      /*
       checkPriceJump({
         ...this.lastTick,
         timeframe: INTERVALS.get('5m'),
       }),
-      */
 
-      checkFigureLineRebound(this.lastTick),
+      // checkFigureLineRebounds(this.lastTick),
       checkFigureLevelRebound(this.lastTick),
     ]);
 
-    /*
     if (!resultCheckPriceJump || !resultCheckPriceJump.status) {
       log.warn(resultCheckPriceJump.message || 'Cant checkPriceJump');
-    }
-    */
-
-    if (!resultCheckFigureLineRebound) {
-      log.warn(resultCheckFigureLineRebound.message || 'Cant checkFigureLineRebound');
     }
 
     if (!resultCheckFigureLevelRebound) {
       log.warn(resultCheckFigureLevelRebound.message || 'Cant checkFigureLevelRebound');
     }
+
+    /*
+    if (!resultCheckFigureLineRebound) {
+      log.warn(resultCheckFigureLineRebound.message || 'Cant checkFigureLineRebounds');
+    }
+    */
 
     setTimeout(() => { this.nextStep(); }, 1 * 1000);
   }
@@ -118,6 +125,30 @@ module.exports = async () => {
         }
 
         instrumentsQueues[instrumentName].updateLastTick(parsedData.data);
+
+        if (isClosed) {
+          /*
+          const [
+            resultCalculateMovingAverage,
+          ] = await Promise.all([
+            calculateMovingAveargeForTimeframe({
+              instrumentId,
+              instrumentName,
+              timeframe: INTERVALS.get('5m'),
+            }),
+          ]);
+
+          if (!resultCalculateMovingAverage || !resultCalculateMovingAverage.status) {
+            log.warn(resultCalculateMovingAverage.message || 'Cant calculateMovingAverage');
+          } else {
+            const resultCheck = await checkMovingAveragesCrossed({});
+
+            if (!resultCheck || !resultCheck.status) {
+              log.warn(resultCheck.message || 'Cant checkMovingAveragesCrossed');
+            }
+          }
+          */
+        }
       });
 
       setTimeout(() => {

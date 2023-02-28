@@ -48,11 +48,13 @@ module.exports = async () => {
         websocketConnect();
       });
 
+      /*
       client.on('message', async bufferData => {
         const parsedData = JSON.parse(bufferData.toString());
 
         // todo: do calculations
       });
+      */
 
       setTimeout(() => {
         if (!isOpened) {

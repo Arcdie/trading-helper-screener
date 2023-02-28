@@ -27,7 +27,7 @@ const {
 
 const StrategyFigureLevelRebound = require('../../../../models/StrategyFigureLevelRebound');
 
-const PERCENT_FOR_DEFINE_REBOUND = 3; // %
+const PERCENT_FOR_DEFINE_REBOUND = 5; // %
 
 const checkFigureLevelRebound = async ({
   instrumentId,
@@ -82,8 +82,7 @@ const checkFigureLevelRebound = async ({
 
       const percentPerPrice = price * (PERCENT_FOR_DEFINE_REBOUND / 100);
 
-      const triggerPrice = isLong ?
-        price - percentPerPrice : price + percentPerPrice;
+      const triggerPrice = isLong ? price - percentPerPrice : price + percentPerPrice;
 
       if (isLong && validClose > triggerPrice) {
         targetKeys.push(key);
@@ -147,13 +146,11 @@ const checkFigureLevelRebound = async ({
         },
       });
 
-      /*
       const message = `FigureLevelRebound:${instrumentName}
   https://ru.tradingview.com/chart/?symbol=${instrumentName}&interval=60
-  https://trading-helper.ru/monitoring?symbol=${instrumentName}&interval=1h`;
+  https://trading-helper.fun/demo-online?symbol=${instrumentName}&interval=1h`;
 
       sendMessage(260325716, message);
-      // */
     }));
 
     const nowUnix = getUnix();

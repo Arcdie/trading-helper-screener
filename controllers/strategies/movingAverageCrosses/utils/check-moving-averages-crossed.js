@@ -18,10 +18,6 @@ const {
 } = require('../../../../websocket/websocket-server');
 
 const {
-  sendMessage,
-} = require('../../../telegram/utils/send-message');
-
-const {
   INTERVALS,
 } = require('../../../candles/constants');
 
@@ -33,7 +29,7 @@ const StrategyFigureLineRebound = require('../../../../models/StrategyFigureLine
 
 const PERCENT_FOR_DEFINE_REBOUND = 3; // %
 
-const checkFigureLineRebounds = async ({
+const checkMovingAveragesCrossed = async ({
   instrumentId,
   instrumentName,
 
@@ -181,5 +177,5 @@ const checkFigureLineRebounds = async ({
 };
 
 module.exports = {
-  checkFigureLineRebounds,
+  checkMovingAveragesCrossed,
 };

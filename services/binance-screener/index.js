@@ -11,5 +11,5 @@ module.exports = async () => {
 
   // await get1mCandlesForFuturesInstruments();
   await get5mCandlesForFuturesInstruments();
-  await get1hCandlesForFuturesInstruments();
+  // await get1hCandlesForFuturesInstruments();
 };

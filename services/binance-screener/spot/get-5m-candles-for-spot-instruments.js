@@ -2,9 +2,15 @@ const WebSocketClient = require('ws');
 
 const log = require('../../../libs/logger')(module);
 
+const QueueHandler = require('../../../libs/queue-handler');
+
 const {
   sendMessage,
 } = require('../../../controllers/telegram/utils/send-message');
+
+const {
+  checkPriceJump,
+} = require('../../../controllers/strategies/priceJumps/utils/check-price-jump');
 
 const {
   binanceScreenerConf,
@@ -14,11 +20,35 @@ const {
   ACTION_NAMES,
 } = require('../../../websocket/constants');
 
+const {
+  INTERVALS,
+} = require('../../../controllers/candles/constants');
+
 const CONNECTION_NAME = 'TradinScreenerToBinanceScreener:Spot:Kline_5m';
+
+class InstrumentQueueWithDelay extends QueueHandler {
+  async nextTick() {
+    const [
+      resultCheckPriceJump,
+    ] = await Promise.all([
+      checkPriceJump({
+        ...this.lastTick,
+        timeframe: INTERVALS.get('5m'),
+      }),
+    ]);
+
+    if (!resultCheckPriceJump || !resultCheckPriceJump.status) {
+      log.warn(resultCheckPriceJump.message || 'Cant checkPriceJump');
+    }
+
+    setTimeout(() => { this.nextStep(); }, 1 * 1000);
+  }
+}
 
 module.exports = async () => {
   try {
     let sendPongInterval;
+    const instrumentsQueues = [];
     const connectStr = `ws://${binanceScreenerConf.host}:${binanceScreenerConf.websocketPort}`;
 
     const websocketConnect = () => {
@@ -51,7 +81,15 @@ module.exports = async () => {
       client.on('message', async bufferData => {
         const parsedData = JSON.parse(bufferData.toString());
 
-        // todo: do calculations
+        const {
+          instrumentName,
+        } = parsedData.data;
+
+        if (!instrumentsQueues[instrumentName]) {
+          instrumentsQueues[instrumentName] = new InstrumentQueueWithDelay(instrumentName);
+        }
+
+        instrumentsQueues[instrumentName].updateLastTick(parsedData.data);
       });
 
       setTimeout(() => {

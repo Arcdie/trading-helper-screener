@@ -7,7 +7,7 @@ const log = require('../../../libs/logger')(module);
 
 const {
   INTERVALS,
-} = require('../../candles/constants');
+} = require('../constants');
 
 const {
   PRICE_ROLLBACKS_CONSTANTS,
@@ -52,9 +52,9 @@ const calculateAverageVolume = async ({
 
     candlesDocs = JSON.parse(candlesDocs);
 
-    const numberCandlesForVolume = timeframe === INTERVALS.get('5m') ?
-      PRICE_ROLLBACKS_CONSTANTS.NUMBER_CANDLES_FOR_CALCULATE_AVERAGE_PERCENT_FOR_5M :
-      PRICE_ROLLBACKS_CONSTANTS.NUMBER_CANDLES_FOR_CALCULATE_AVERAGE_PERCENT_FOR_1H;
+    const numberCandlesForVolume = timeframe === INTERVALS.get('5m')
+      ? PRICE_ROLLBACKS_CONSTANTS.NUMBER_CANDLES_FOR_CALCULATE_AVERAGE_PERCENT_FOR_5M
+      : PRICE_ROLLBACKS_CONSTANTS.NUMBER_CANDLES_FOR_CALCULATE_AVERAGE_PERCENT_FOR_1H;
 
     if (candlesDocs.length < numberCandlesForVolume) {
       const message = `Instrument ${instrumentName} has less candles than required`;

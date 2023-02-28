@@ -189,7 +189,7 @@ const checkPriceRollback = async ({
 
     const message = `PriceRollback:${intervalWithUpperCase}
 https://ru.tradingview.com/chart/?symbol=${instrumentName}&interval=${interval}
-https://trading-helper.ru/monitoring?symbol=${instrumentName}&interval=${timeframe}`;
+https://trading-helper.fun/monitoring?symbol=${instrumentName}&interval=${timeframe}`;
 
     sendMessage(260325716, message);
     // sendMessage(1784451390, message);

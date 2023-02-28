@@ -7,7 +7,7 @@ const log = require('../../../libs/logger')(module);
 
 const {
   INTERVALS,
-} = require('../../candles/constants');
+} = require('../constants');
 
 const {
   PRICE_JUMPS_CONSTANTS,

@@ -13,6 +13,8 @@ const ACTION_NAMES = new Map([
 
   ['figureLineRebound', 'figureLineRebound'],
   ['figureLevelRebound', 'figureLevelRebound'],
+
+  ['movingAveragesCrossed', 'movingAveragesCrossed'],
 ]);
 
 module.exports = {

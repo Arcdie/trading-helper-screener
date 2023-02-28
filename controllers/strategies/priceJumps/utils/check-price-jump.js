@@ -25,16 +25,12 @@ const {
 } = require('../../../telegram/utils/send-message');
 
 const {
-  getInstrumentTrend,
-} = require('../../../instrument-trends/utils/get-instrument-trend');
-
-const {
   INTERVALS,
 } = require('../../../candles/constants');
 
 const {
   PRICE_JUMPS_CONSTANTS,
-} = require('../../../strategies/constants');
+} = require('../../constants');
 
 const {
   ACTION_NAMES,
@@ -130,7 +126,6 @@ const checkPriceJump = async ({
     const precisionOfOpen = getPrecision(open);
     price = parseFloat(price.toFixed(precisionOfOpen));
 
-    /*
     const newStrategyPriceJump = new StrategyPriceJump({
       instrument_id: instrumentId,
       is_long: isLong,
@@ -143,11 +138,9 @@ const checkPriceJump = async ({
     });
 
     await newStrategyPriceJump.save();
-    */
 
     const nowUnix = getUnix();
-    const expireAfter = timeframe === INTERVALS.get('5m') ?
-      30 * 60 : 3 * 60 * 60; // 30 minutes - 3 hours
+    const expireAfter = timeframe === INTERVALS.get('5m') ? 30 * 60 : 3 * 60 * 60; // 30 minutes - 3 hours
 
     await redis.setAsync([
       keyPriceJump,
@@ -167,7 +160,7 @@ const checkPriceJump = async ({
 
     const message = `PriceJump:${intervalWithUpperCase} ${instrumentName}
 https://ru.tradingview.com/chart/?symbol=${instrumentName}&interval=${interval}
-https://trading-helper.ru/monitoring?symbol=${instrumentName}&interval=${timeframe}`;
+https://trading-helper.fun/demo-online?symbol=${instrumentName}&interval=${timeframe}`;
 
     sendMessage(260325716, message);
     // sendMessage(1784451390, message);
@@ -179,7 +172,7 @@ https://trading-helper.ru/monitoring?symbol=${instrumentName}&interval=${timefra
         instrumentId,
         instrumentName,
         instrumentPrice: validClose,
-        // strategyTargetId: newStrategyPriceJump._id,
+        strategyTargetId: newStrategyPriceJump._id,
       },
     });
 

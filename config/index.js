@@ -20,7 +20,7 @@ module.exports = {
   },
 
   tradingHelperConf: {
-    url: 'trading-helper.ru',
+    url: 'trading-helper.fun',
     websocketPort: 3100,
     token: process.env.TRADING_HELPER_AUTH_TOKEN,
   },
